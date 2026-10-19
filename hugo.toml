@@ -7,12 +7,10 @@ dataDir = "config"
 defaultContentLanguage = "zh-cn"
 timeZone = "Asia/Shanghai"
 enableRobotsTXT = true
+disableKinds = ["taxonomy", "term"]
 
 [pagination]
 pagerSize = 20
-
-[taxonomies]
-tag = "tags"
 
 [markup.goldmark.renderer]
 unsafe = true
@@ -30,31 +28,13 @@ startLevel = 2
 endLevel = 3
 
 [outputs]
-home = ["HTML", "RSS", "LLMS", "Security", "Humans"]
+home = ["HTML", "LLMS", "Security", "Humans"]
+page = ["HTML"]
+section = ["HTML"]
 
 [sitemap]
   changefreq = "weekly"
   priority = 0.5
-
-[related]
-  includeNewer = true
-  threshold = 80
-  toLower = true
-
-[[related.indices]]
-  name = "tags"
-  cardinalityThreshold = 3
-  weight = 80
-
-[[related.indices]]
-  name = "date"
-  weight = 20
-
-[outputFormats.Search]
-mediaType = "application/json"
-baseName = "index"
-isPlainText = true
-notAlternativeFormats = true
 
 [outputFormats.LLMS]
 mediaType = "text/plain"

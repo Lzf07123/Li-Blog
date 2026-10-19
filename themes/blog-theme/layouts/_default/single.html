@@ -1,11 +1,6 @@
 {{ define "main" }}
 {{ $strings := hugo.Data.strings }}
-{{ $has_date := gt .Date.Year 1 }}
-{{ $has_updated := and (gt .Lastmod.Year 1) (ne (.Date.Format "2006-01-02") (.Lastmod.Format "2006-01-02")) }}
-{{ $has_reading := .ReadingTime }}
-{{ $has_tags := .Params.tags }}
-<article class="article" data-copy="{{ $strings.common.copy_code }}" data-copied="{{ $strings.common.copy_code_done }}">
-  <div class="reading-progress" aria-hidden="true"></div>
+<article class="article">
   {{ partial "breadcrumb.html" . }}
   {{ with .Params.cover }}
   <figure class="article-cover">
@@ -18,33 +13,16 @@
   </figure>
   {{ end }}
   <h1 class="page-title">{{ .Title }}</h1>
-  {{ if or $has_date $has_updated $has_reading $has_tags }}
+  {{ if gt .Date.Year 1 }}
   <p class="meta">
-    {{ if $has_date }}
     <time datetime="{{ .Date.Format "2006-01-02" }}">{{ $strings.common.published_at }} {{ .Date.Format "2006-01-02" }}</time>
-    {{ end }}
-    {{ if $has_updated }}
+    {{ if and (gt .Lastmod.Year 1) (ne (.Date.Format "2006-01-02") (.Lastmod.Format "2006-01-02")) }}
     <span class="meta-sep">·</span>
     <time datetime="{{ .Lastmod.Format "2006-01-02" }}">{{ $strings.common.updated_at }} {{ .Lastmod.Format "2006-01-02" }}</time>
     {{ end }}
-    {{ if $has_reading }}
-    <span class="meta-sep">·</span>
-    <span>{{ .ReadingTime }} {{ $strings.common.reading_time }}</span>
-    {{ end }}
-    {{ with .Params.tags }}{{ range . }}<a class="tag" href="{{ printf "/tags/%s/" (urlize .) | relURL }}">{{ . }}</a>{{ end }}{{ end }}
   </p>
   {{ end }}
-  {{ if .TableOfContents }}
-  <div class="article-layout">
-    <aside class="toc" aria-label="{{ $strings.common.toc }}">
-      <p class="toc-title">{{ $strings.common.toc }}</p>
-      {{ .TableOfContents }}
-    </aside>
-    <div class="article-body">{{ .Content }}</div>
-  </div>
-  {{ else }}
   <div class="article-body">{{ .Content }}</div>
-  {{ end }}
   {{ with $strings.footer.license }}
   <p class="article-license">{{ $strings.common.license_prefix }} <a href="{{ $strings.footer.license_url }}" target="_blank" rel="noopener">{{ . }}</a></p>
   {{ end }}
@@ -60,10 +38,8 @@
     {{ range . }}<a class="badge badge-primary" href="{{ .href }}" target="_blank" rel="noopener">{{ .label }}</a>{{ end }}
   </div>
   {{ end }}
-  {{ if and (or (eq .Section "posts") (eq .Section "timeline")) (or .PrevInSection .NextInSection) }}
-  {{ $nav_label := $strings.common.post_nav }}
-  {{ if eq .Section "timeline" }}{{ $nav_label = $strings.common.timeline_nav }}{{ end }}
-  <nav class="post-nav" aria-label="{{ $nav_label }}">
+  {{ if and (eq .Section "timeline") (or .PrevInSection .NextInSection) }}
+  <nav class="post-nav" aria-label="{{ $strings.common.timeline_nav }}">
     {{ with .PrevInSection }}
     <a class="post-nav-item" href="{{ .RelPermalink }}">
       <span>{{ $strings.common.prev }}</span>
@@ -78,22 +54,5 @@
     {{ end }}
   </nav>
   {{ end }}
-  {{ $related := where (.Site.RegularPages.Related .) "Section" "posts" | first 3 }}
-  {{ if and (eq .Section "posts") $related }}
-  <nav class="related-posts" aria-label="{{ $strings.home.related_title }}">
-    <h2 class="section-title">{{ $strings.home.related_title }}</h2>
-    <div class="post-list">
-      {{ range $related }}{{ partial "post-card.html" (dict "page" . "level" 3) }}{{ end }}
-    </div>
-  </nav>
-  {{ end }}
-  {{ if ge .WordCount 300 }}<p class="back-top"><a href="#main">{{ $strings.common.top }}</a></p>{{ end }}
 </article>
-
-{{ end }}
-
-{{ define "scripts" }}
-{{ $av := partialCached "asset-versions.html" . "asset-versions-v1" }}
-<script defer src="{{ "js/reading-progress.js" | relURL }}?v={{ index $av.js "reading_progress" }}"></script>
-<script defer src="{{ "js/copy-code.js" | relURL }}?v={{ index $av.js "copy_code" }}"></script>
 {{ end }}

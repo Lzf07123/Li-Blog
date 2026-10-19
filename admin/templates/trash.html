@@ -17,9 +17,9 @@
   {% endif %}
 </div>
 <div class="stat-cards">
-  {% for section in ["posts", "projects", "timeline"] %}
+  {% for section in ["projects", "timeline"] %}
   {% if section_counts.get(section, 0) %}
-  <div class="stat-card"><span>{{ {"posts": "文章", "projects": "项目", "timeline": "时间线"}[section] }}</span><strong>{{ section_counts[section] }}</strong></div>
+  <div class="stat-card"><span>{{ {"projects": "项目", "timeline": "时间线"}[section] }}</span><strong>{{ section_counts[section] }}</strong></div>
   {% endif %}
   {% endfor %}
 </div>

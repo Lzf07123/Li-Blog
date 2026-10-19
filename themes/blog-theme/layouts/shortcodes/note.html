@@ -1,2 +1,0 @@
-{{ $type := .Get 0 | default "note" }}
-<div class="admonition admonition-{{ $type }}">{{ .Inner | markdownify }}</div>

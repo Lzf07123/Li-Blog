@@ -126,19 +126,6 @@ def list_markdown(
             or ql in str(it.get("description") or "").lower()
             or any(ql in str(t).lower() for t in it["tags"])
         ]
-    if status and section == "posts" and status in ("published", "draft"):
-        items = [it for it in items if it["status"] == status]
-    if tag and section == "posts":
-        tag_l = tag.strip().lower()
-        items = [
-            it
-            for it in items
-            if any(str(t).strip().lower() == tag_l for t in it["tags"])
-        ]
-    if section == "posts" and pinned == "1":
-        items = [it for it in items if it["pinned"]]
-    elif section == "posts" and pinned == "0":
-        items = [it for it in items if not it["pinned"]]
     if sort in ("title", "date", "status", "slug", "href", "weight"):
         reverse = order == "desc"
 
@@ -153,14 +140,6 @@ def list_markdown(
 
         items.sort(key=sort_key, reverse=reverse)
     return items
-
-
-def all_tags() -> list[str]:
-    """聚合文章栏目现有标签，供编辑器自动补全。"""
-    tags: set[str] = set()
-    for item in list_markdown("posts"):
-        tags.update(str(t) for t in (item.get("tags") or []))
-    return sorted(tags)
 
 
 def read_markdown(section: str, slug: str) -> tuple[dict, str]:
@@ -187,10 +166,6 @@ def write_markdown(section: str, slug: str, frontmatter: dict, body: str) -> Non
     if not SLUG_RE.match(slug):
         raise ValueError("bad slug")
     fm = dict(frontmatter)
-    if section == "posts":
-        # Hugo 只认 draft: true，后台以 status: draft 管理草稿；两者必须保持一致，
-        # 否则草稿会被渲染进公开产物并被构建自检拦截。
-        fm["draft"] = fm.get("status") == "draft"
     fm = yaml.safe_dump(fm, allow_unicode=True, sort_keys=False, default_flow_style=False).strip()
     text = f"---\n{fm}\n---\n\n{body.strip()}\n"
     p = safe_resolve(settings.content_root, f"{section}/{slug}.md")

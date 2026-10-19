@@ -62,7 +62,7 @@ class AnonSessionBypassTest(SetupSecurityBase):
     def test_anon_session_rejected_on_protected_routes(self):
         with TestClient(app) as client:
             client.get("/admin/login")  # 发放匿名会话 Cookie
-            for path in ("/admin/", "/admin/posts", "/admin/media", "/admin/settings/account"):
+            for path in ("/admin/", "/admin/projects", "/admin/media", "/admin/settings/account"):
                 r = client.get(path, follow_redirects=False)
                 self.assertEqual(r.status_code, 302, path)
                 self.assertIn("/admin/login", r.headers.get("location", ""), path)
@@ -77,7 +77,7 @@ class AnonSessionBypassTest(SetupSecurityBase):
                 follow_redirects=False,
             )
             self.assertEqual(r.status_code, 303)
-            r = client.get("/admin/posts", follow_redirects=False)
+            r = client.get("/admin/projects", follow_redirects=False)
             self.assertEqual(r.status_code, 200)
 
 

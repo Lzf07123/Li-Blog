@@ -17,7 +17,6 @@ from scripts.build import (
     write_fingerprint,
 )
 
-
 class TestBuild(unittest.TestCase):
     def test_validate_rejects_bad_frontmatter(self):
         with tempfile.TemporaryDirectory() as d:
@@ -52,13 +51,13 @@ class TestBuild(unittest.TestCase):
     def test_content_links_validate(self):
         with tempfile.TemporaryDirectory() as d:
             root = pathlib.Path(d)
-            (root / "content" / "posts").mkdir(parents=True)
+            (root / "content" / "projects").mkdir(parents=True)
             (root / "themes" / "blog-theme" / "static" / "img").mkdir(parents=True)
-            (root / "content" / "posts" / "hello.md").write_text(
+            (root / "content" / "projects" / "hello.md").write_text(
                 "---\ntitle: H\n---\n"
                 "![图](/img/ok.png)\n"
-                "[坏链](/posts/nope/)\n"
-                "[好链](/posts/hello/)\n"
+                "[坏链](/projects/nope/)\n"
+                "[好链](/projects/hello/)\n"
                 "[外链](https://example.com)\n",
                 encoding="utf-8",
             )
@@ -66,10 +65,10 @@ class TestBuild(unittest.TestCase):
                 b"png"
             )
             errors = validate_content_links(root)
-            self.assertTrue(any("/posts/nope/" in e for e in errors))
+            self.assertTrue(any("/projects/nope/" in e for e in errors))
             self.assertFalse(any("ok.png" in e for e in errors))
             self.assertFalse(any("https://example.com" in e for e in errors))
-            self.assertFalse(any("/posts/hello/" in e for e in errors))
+            self.assertFalse(any("/projects/hello/" in e for e in errors))
 
     def test_verify_output_detects_missing_and_placeholder(self):
         with tempfile.TemporaryDirectory() as d:
@@ -86,56 +85,16 @@ class TestBuild(unittest.TestCase):
             errors = verify_output(out, expect_absolute_urls=True)
             self.assertFalse(any("example.com" in e for e in errors))
 
-    def test_verify_output_checks_json_and_sitemap(self):
+    def test_verify_output_checks_sitemap(self):
         with tempfile.TemporaryDirectory() as d:
             out = pathlib.Path(d)
             (out / "index.html").write_text("<html></html>", encoding="utf-8")
-            (out / "index.xml").write_text("<rss></rss>", encoding="utf-8")
             (out / "robots.txt").write_text("User-agent: *", encoding="utf-8")
             (out / "llms.txt").write_text("# site", encoding="utf-8")
             (out / "404.html").write_text("404", encoding="utf-8")
-            (out / "search").mkdir()
-            (out / "search" / "index.json").write_text("[broken", encoding="utf-8")
             (out / "sitemap.xml").write_text("<xml/>", encoding="utf-8")
             errors = verify_output(out)
-            self.assertTrue(any("合法 JSON" in e for e in errors))
             self.assertTrue(any("urlset" in e for e in errors))
-
-    def test_verify_output_rejects_draft_and_future_leak(self):
-        with tempfile.TemporaryDirectory() as d:
-            root = pathlib.Path(d)
-            content = root / "content" / "posts"
-            content.mkdir(parents=True)
-            (content / "draft-post.md").write_text(
-                "---\ntitle: D\nstatus: draft\n---\n正文\n", encoding="utf-8"
-            )
-            (content / "future-post.md").write_text(
-                "---\ntitle: F\ndate: 2099-01-01\n---\n正文\n", encoding="utf-8"
-            )
-            out = root / "out"
-            for rel in ("posts/draft-post/index.html", "posts/future-post/index.html"):
-                target = out / rel
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_text("<html>leak</html>", encoding="utf-8")
-            errors = verify_output(out, content_root=root / "content")
-            self.assertTrue(any("草稿泄漏" in e for e in errors))
-            self.assertTrue(any("未来日期" in e for e in errors))
-
-    def test_verify_output_rejects_draft_in_sitemap(self):
-        with tempfile.TemporaryDirectory() as d:
-            root = pathlib.Path(d)
-            content = root / "content" / "posts"
-            content.mkdir(parents=True)
-            (content / "hidden.md").write_text(
-                "---\ntitle: H\nstatus: draft\n---\n正文\n", encoding="utf-8"
-            )
-            out = root / "out"
-            out.mkdir()
-            (out / "sitemap.xml").write_text(
-                "<urlset><loc>https://x/posts/hidden/</loc></urlset>", encoding="utf-8"
-            )
-            errors = verify_output(out, content_root=root / "content")
-            self.assertTrue(any("sitemap 包含草稿" in e for e in errors))
 
     def test_write_fingerprint_creates_build_yaml(self):
         with tempfile.TemporaryDirectory() as d:
@@ -190,7 +149,6 @@ class TestBuild(unittest.TestCase):
             self.assertEqual(cm.exception.code, 2)
             self.assertFalse((root / ".build-tmp").exists())
 
-
 class TestBootstrapBuild(unittest.TestCase):
     def test_bootstrap_always_runs_full_build_even_if_index_exists(self):
         from admin import main as main_mod
@@ -215,7 +173,6 @@ class TestBootstrapBuild(unittest.TestCase):
             with mock.patch.object(main_mod.build, "run_full") as run:
                 main_mod._bootstrap_build()
         run.assert_not_called()
-
 
 if __name__ == "__main__":
     unittest.main()

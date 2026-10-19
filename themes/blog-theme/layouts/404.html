@@ -6,18 +6,9 @@
   <p>
     <a class="more-link" href="{{ .Site.Home.RelPermalink }}">{{ $strings.nav.home }}</a>
     <span class="meta-sep">·</span>
-    <a class="more-link" href="{{ "posts/" | relURL }}">{{ $strings.nav.posts }}</a>
+    <a class="more-link" href="{{ "projects/" | relURL }}">{{ $strings.nav.projects }}</a>
     <span class="meta-sep">·</span>
-    <a class="more-link" href="{{ "timeline/" | relURL }}">{{ $strings.nav.timeline }}</a>
-    <span class="meta-sep">·</span>
-    <button type="button" class="btn-link" data-open-search>{{ $strings.nav.search }}</button>
+    <a class="more-link" href="{{ "about/" | relURL }}">{{ $strings.nav.about }}</a>
   </p>
-  {{ $latest := first 3 (where .Site.RegularPages.ByDate.Reverse "Section" "posts") }}
-  {{ if $latest }}
-  <h2 class="section-title">{{ $strings.home.latest_title }}</h2>
-  <div class="post-list">
-    {{ range $latest }}{{ partial "post-card.html" . }}{{ end }}
-  </div>
-  {{ end }}
 </div>
 {{ end }}

@@ -3,18 +3,14 @@
 {% block content %}
 <div class="dashboard-head">
   <h1>仪表盘</h1>
-  <a class="btn" href="/{{ admin_path }}/posts/new">新建文章</a>
 </div>
 <div class="stat-cards">
-  <div class="stat-card"><span>文章</span><strong>{{ counts.posts }}</strong></div>
-  <div class="stat-card"><span>草稿</span><strong>{{ drafts|length }}</strong></div>
   <div class="stat-card"><span>项目</span><strong>{{ counts.projects }}</strong></div>
   <div class="stat-card"><span>时间线</span><strong>{{ counts.timeline }}</strong></div>
   <div class="stat-card"><span>媒体</span><strong>{{ media_count }}</strong></div>
 </div>
 <div class="quick-actions">
-  <a class="btn btn-secondary btn-sm" href="/{{ admin_path }}/posts">文章管理</a>
-  <a class="btn btn-secondary btn-sm" href="/{{ admin_path }}/posts?status=draft">草稿（{{ drafts|length }}）</a>
+  <a class="btn btn-secondary btn-sm" href="/{{ admin_path }}/projects">项目管理</a>
   <a class="btn btn-secondary btn-sm" href="/{{ admin_path }}/media">媒体库</a>
   <a class="btn btn-secondary btn-sm" href="/" target="_blank" rel="noopener">查看公开站</a>
   <form method="post" action="/{{ admin_path }}/rebuild" data-busy>
@@ -33,28 +29,6 @@
     </span>
   </p>
 </div>
-{% endif %}
-{% if drafts %}
-<h2>草稿</h2>
-<ul class="draft-list">
-  {% for d in drafts[:5] %}
-  <li>
-    <a href="/{{ admin_path }}/posts/{{ d.slug }}/edit">{{ d.title }}</a>
-    <time>{{ d.date }}</time>
-  </li>
-  {% endfor %}
-</ul>
-{% endif %}
-{% if scheduled %}
-<h2>定时文章（{{ scheduled|length }}）</h2>
-<ul class="draft-list">
-  {% for d in scheduled[:5] %}
-  <li>
-    <a href="/{{ admin_path }}/posts/{{ d.slug }}/edit">{{ d.title }}</a>
-    <time>{{ d.date }}</time>
-  </li>
-  {% endfor %}
-</ul>
 {% endif %}
 <div class="admin-card build-card">
   <h2>内容体检</h2>
@@ -85,10 +59,6 @@
   </div>
   {% endfor %}
 </div>
-{% endif %}
-{% if recent_posts %}
-<h2>最近文章</h2>
-{% with table = recent_table %}{% include "partials/table.html" %}{% endwith %}
 {% endif %}
 {% if recent_activity %}
 <h2>最近活动</h2>

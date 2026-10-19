@@ -24,8 +24,6 @@ FINGERPRINT_FILES = {
     "css.style": "themes/blog-theme/static/css/style.css",
     "css.admin": "themes/blog-theme/static/css/admin.css",
     "js.effects": "themes/blog-theme/static/js/effects-react.js",
-    "js.fuse": "themes/blog-theme/static/js/fuse.min.js",
-    "js.reading_progress": "themes/blog-theme/static/js/reading-progress.js",
     "js.admin_dropdown": "themes/blog-theme/static/js/admin-dropdown.js",
     "js.nav_menu": "themes/blog-theme/static/js/nav-menu.js",
 }
@@ -101,7 +99,7 @@ def validate_content_links(root):
         if not url or url.startswith(("#", "http://", "https://", "mailto:", "data:")):
             return
         clean = url.split("#")[0].split("?")[0].rstrip("/")
-        if clean.startswith(("/posts/", "/projects/", "/timeline/")):
+        if clean.startswith(("/projects/", "/timeline/")):
             rel = clean.lstrip("/")
             candidates = [
                 content_root / f"{rel}.md",
@@ -195,22 +193,14 @@ def verify_output(dst, expect_absolute_urls=False, content_root=None):
     errors = []
     required = (
         "index.html",
-        "index.xml",
         "sitemap.xml",
         "robots.txt",
         "llms.txt",
-        "search/index.json",
         "404.html",
     )
     for rel in required:
         if not (dst / rel).exists():
             errors.append(f"产物缺失: {rel}")
-    search_index = dst / "search" / "index.json"
-    if search_index.exists():
-        try:
-            json.loads(search_index.read_text(encoding="utf-8"))
-        except (ValueError, UnicodeDecodeError) as exc:
-            errors.append(f"search/index.json 不是合法 JSON: {exc}")
     sitemap = dst / "sitemap.xml"
     if sitemap.exists():
         text = sitemap.read_text(encoding="utf-8", errors="replace")
@@ -223,35 +213,6 @@ def verify_output(dst, expect_absolute_urls=False, content_root=None):
                 text = target.read_text(encoding="utf-8", errors="replace")
                 if "example.com" in text:
                     errors.append(f"产物含占位域名 example.com: {rel}")
-    if content_root and content_root.exists():
-        import datetime as _dt
-        import yaml as _yaml
-
-        sitemap_text = ""
-        sitemap = dst / "sitemap.xml"
-        if sitemap.exists():
-            sitemap_text = sitemap.read_text(encoding="utf-8", errors="replace")
-        for p in sorted((content_root / "posts").glob("*.md")):
-            text = p.read_text(encoding="utf-8")
-            if not text.startswith("---"):
-                continue
-            try:
-                fm = _yaml.safe_load(text.split("---", 2)[1]) or {}
-            except Exception:
-                continue
-            rel = f"posts/{p.stem}/index.html"
-            if fm.get("status") == "draft" and (dst / rel).exists():
-                errors.append(f"草稿泄漏到公开产物: {rel}")
-            if fm.get("status") == "draft" and f"/posts/{p.stem}/" in sitemap_text:
-                errors.append(f"sitemap 包含草稿 URL: /posts/{p.stem}/")
-            try:
-                date_text = str(fm.get("date", "")).strip()
-                if date_text:
-                    pub = _dt.date.fromisoformat(date_text[:10])
-                    if pub > _dt.date.today() and (dst / rel).exists():
-                        errors.append(f"未来日期文章出现在公开产物: {rel} ({date_text})")
-            except ValueError:
-                pass
     return errors
 
 

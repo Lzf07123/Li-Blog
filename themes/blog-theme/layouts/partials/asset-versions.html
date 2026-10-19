@@ -1,5 +1,5 @@
 {{ $css := dict "tokens" "1" "style" "1" "admin" "1" }}
-{{ $js := dict "effects" "1" "fuse" "1" "reading_progress" "1" "admin_dropdown" "1" "copy_code" "1" "nav_menu" "1" }}
+{{ $js := dict "effects" "1" "admin_dropdown" "1" "nav_menu" "1" }}
 {{ with hugo.Data.build }}
   {{ with .css }}{{ $css = merge $css . }}{{ end }}
   {{ with .js }}{{ $js = merge $js . }}{{ end }}

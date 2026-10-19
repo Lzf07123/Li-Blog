@@ -5,7 +5,6 @@ from pathlib import Path
 from admin import content
 from admin.config import settings
 
-
 class TestContent(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -107,40 +106,7 @@ class TestContent(unittest.TestCase):
             "正文",
         )
         self.assertEqual(len(content.list_markdown("posts", q="hugo")), 1)
-        self.assertEqual(len(content.list_markdown("posts", status="draft")), 1)
         self.assertEqual(len(content.list_markdown("posts", q="不存在")), 0)
-
-    def test_list_markdown_tag_pinned_filter(self):
-        content.write_markdown(
-            "posts",
-            "tagged-pinned",
-            {"title": "置顶带标签", "date": "2026-08-18", "status": "published", "tags": ["hugo"], "pinned": True},
-            "正文",
-        )
-        content.write_markdown(
-            "posts",
-            "tagged-only",
-            {"title": "仅带标签", "date": "2026-08-18", "status": "published", "tags": ["hugo"]},
-            "正文",
-        )
-        content.write_markdown(
-            "posts",
-            "other",
-            {"title": "其他", "date": "2026-08-18", "status": "published", "tags": ["python"]},
-            "正文",
-        )
-        self.assertEqual(
-            sorted(i["slug"] for i in content.list_markdown("posts", tag="hugo")),
-            ["tagged-only", "tagged-pinned"],
-        )
-        self.assertEqual(
-            [i["slug"] for i in content.list_markdown("posts", pinned="1")],
-            ["tagged-pinned"],
-        )
-        self.assertEqual(
-            [i["slug"] for i in content.list_markdown("posts", pinned="0", tag="hugo")],
-            ["tagged-only"],
-        )
 
     def test_list_markdown_sort(self):
         content.write_markdown(
@@ -241,7 +207,6 @@ class TestContent(unittest.TestCase):
         self.assertNotIn("<script", cleaned)
         self.assertEqual(content.sanitize_inline_svg("<svg onclick=x>"), "")
         self.assertEqual(content.sanitize_inline_svg("/img/icon.svg"), "/img/icon.svg")
-
 
 if __name__ == "__main__":
     unittest.main()

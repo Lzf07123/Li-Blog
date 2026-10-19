@@ -3,9 +3,6 @@
 {{ $profile := hugo.Data.profile }}
 {{ $home := hugo.Data.homepage }}
 {{ $strings := hugo.Data.strings }}
-{{ $posts := where .Site.RegularPages "Section" "posts" }}
-{{ $pinnedPosts := where $posts "Params.pinned" true }}
-{{ $normalPosts := where $posts "Params.pinned" "ne" true }}
 {{ $projects := where .Site.RegularPages "Section" "projects" }}
 {{ $timeline := where .Site.RegularPages "Section" "timeline" }}
 
@@ -17,7 +14,7 @@
     <p class="hero-meta" data-blur>{{ $profile.identity }} · {{ $profile.direction }}</p>
     <p class="hero-goal" data-blur>{{ $strings.home.goal_title }}：{{ $profile.goal }}</p>
     <p class="hero-actions">
-      <a class="btn btn-light" href="{{ "posts/" | relURL }}">{{ $strings.home.read_blog }}</a>
+      <a class="btn btn-light" href="{{ "projects/" | relURL }}">{{ $strings.home.read_blog }}</a>
       <a class="btn btn-dark" href="{{ "about/" | relURL }}">{{ $strings.home.about_me }}</a>
     </p>
     {{ if $home.hero.show_skills }}
@@ -61,22 +58,6 @@
       {{ partial "project-card.html" (dict "page" . "level" 3) }}
     {{ end }}
   </div>
-</section>
-
-<section class="section">
-  <h2 class="section-title">{{ $strings.home.latest_title }}</h2>
-  <div class="masonry masonry-posts">
-    {{ $count := int $home.posts.latest_count }}
-    {{ $pinnedShown := first $count $pinnedPosts.ByDate.Reverse }}
-    {{ range $pinnedShown }}
-      {{ partial "post-card.html" (dict "page" . "level" 3) }}
-    {{ end }}
-    {{ $normalShown := first (sub $count (len $pinnedShown)) $normalPosts.ByDate.Reverse }}
-    {{ range $normalShown }}
-      {{ partial "post-card.html" (dict "page" . "level" 3) }}
-    {{ end }}
-  </div>
-  <p><a class="more-link" href="{{ "posts/" | relURL }}">{{ $strings.home.view_all }}</a></p>
 </section>
 
 {{ end }}

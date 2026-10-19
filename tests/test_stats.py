@@ -23,7 +23,7 @@ class StatsRoutesTest(unittest.TestCase):
         settings.beacon_log = root / "beacon.log"
         settings.ip_whitelist = []
         media.MEDIA_ROOT = root / "img"
-        (settings.content_root / "posts").mkdir(parents=True)
+        (settings.content_root / "projects").mkdir(parents=True)
         settings.config_root.mkdir(parents=True)
         settings.preview_root.mkdir(parents=True)
         media.MEDIA_ROOT.mkdir(parents=True)
@@ -36,9 +36,9 @@ class StatsRoutesTest(unittest.TestCase):
         conn.executemany(
             "INSERT INTO stats (path, day, views) VALUES (?, ?, ?)",
             [
-                ("/posts/a/", "2026-07-01", 3),
-                ("/posts/b/", "2026-08-01", 5),
-                ("/posts/a/", "2026-08-02", 2),
+                ("/projects/a/", "2026-07-01", 3),
+                ("/projects/b/", "2026-08-01", 5),
+                ("/projects/a/", "2026-08-02", 2),
             ],
         )
         conn.commit()
@@ -73,7 +73,7 @@ class StatsRoutesTest(unittest.TestCase):
             self._login(client)
             r = client.get("/admin/stats?group=path")
             self.assertEqual(r.status_code, 200)
-            # /posts/a/ 存在 07-01 与 08-02 两条记录，应合并为一行并显示最近日期
+            # /projects/a/ 存在 07-01 与 08-02 两条记录，应合并为一行并显示最近日期
             self.assertNotIn("2026-07-01", r.text)
             self.assertEqual(r.text.count("2026-08-02"), 1)
             # a 合计 5 次、b 合计 5 次，总访问应为 10

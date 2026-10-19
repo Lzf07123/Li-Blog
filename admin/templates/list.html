@@ -9,37 +9,13 @@
 <div class="list-head">
   <h1>{{ label }}（{{ total }}）</h1>
   <div class="list-actions">
-    {% if section in ["posts", "projects", "timeline", "friends"] %}
     <a class="btn" href="/{{ admin_path }}/{{ section }}/new">新建</a>
-    {% endif %}
-    {% if section == "posts" %}
-    <a class="btn btn-sm btn-secondary" href="/{{ admin_path }}/posts/import">批量导入</a>
-    <a class="btn btn-sm btn-secondary" href="/{{ admin_path }}/posts/export?q={{ q|urlencode }}&status={{ status }}&tag={{ tag|urlencode }}&pinned={{ pinned }}&sort={{ sort }}&order={{ order }}">导出 CSV</a>
-    {% endif %}
     <a class="btn btn-sm btn-ghost" href="/{{ section }}/" target="_blank" rel="noopener">查看公开页</a>
   </div>
 </div>
 <form class="list-filters" method="get" action="/{{ admin_path }}/{{ section }}">
   <label class="visually-hidden" for="q">{{ '搜索名称、标识或链接' if section == 'friends' else '搜索标题、标识或标签' }}</label>
   <input id="q" type="search" name="q" value="{{ q }}" placeholder="{{ '搜索名称 / 标识 / 链接' if section == 'friends' else '搜索标题 / 标识 / 标签' }}">
-  {% if section == "posts" %}
-  <select name="status" aria-label="按状态筛选" data-custom-dropdown>
-    <option value="">全部状态</option>
-    <option value="published" {% if status == "published" %}selected{% endif %}>已发布</option>
-    <option value="draft" {% if status == "draft" %}selected{% endif %}>草稿</option>
-  </select>
-  <select name="tag" aria-label="按标签筛选" data-custom-dropdown>
-    <option value="">全部标签</option>
-    {% for t in all_tags %}
-    <option value="{{ t }}" {% if tag == t %}selected{% endif %}>{{ t }}</option>
-    {% endfor %}
-  </select>
-  <select name="pinned" aria-label="按置顶筛选" data-custom-dropdown>
-    <option value="">全部文章</option>
-    <option value="1" {% if pinned == "1" %}selected{% endif %}>已置顶</option>
-    <option value="0" {% if pinned == "0" %}selected{% endif %}>未置顶</option>
-  </select>
-  {% endif %}
   <select name="per_page" aria-label="每页条数" data-custom-dropdown>
     {% for n in [20, 50, 100] %}
     <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }} 条/页</option>
@@ -54,98 +30,13 @@
   <a class="btn-link" href="/{{ admin_path }}/{{ section }}" data-clear-filters>清除</a>
   {% endif %}
 </form>
-{% if section == "posts" %}
-<form id="bulk-form" class="bulk-bar" method="post" action="/{{ admin_path }}/posts/bulk">
-  <input type="hidden" name="_csrf" value="{{ csrf }}">
-  <select name="action" aria-label="批量操作" data-custom-dropdown>
-    <option value="publish">批量发布</option>
-    <option value="draft">批量转草稿</option>
-    <option value="pin">批量置顶</option>
-    <option value="unpin">批量取消置顶</option>
-    <option value="add_tag">批量加标签</option>
-    <option value="remove_tag">批量移除标签</option>
-    <option value="delete">批量删除</option>
-  </select>
-  <input type="text" name="tag" list="bulk-tag-options" placeholder="标签（加/移除时必填）" aria-label="批量标签">
-  {% if all_tags %}
-  <datalist id="bulk-tag-options">
-    {% for t in all_tags %}<option value="{{ t }}"></option>{% endfor %}
-  </datalist>
-  {% endif %}
-  <button type="submit" class="btn btn-secondary btn-sm">执行</button>
-  <label class="bulk-select-all">
-    <input type="checkbox" id="bulk-select-all">
-    <span>全选当前筛选结果（<span id="bulk-filter-total">{{ total }}</span> 篇）</span>
-  </label>
-  <span id="bulk-count" class="bulk-count">已选 0 篇</span>
-</form>
-{% endif %}
-{% set bulk_form_id = "bulk-form" if section == "posts" else "" %}
+{% set bulk_form_id = "" %}
 {% include "partials/table.html" %}
 <script>
-  {% if section == "posts" %}
-  (function () {
-    var checks = document.querySelectorAll(".bulk-check");
-    var count = document.getElementById("bulk-count");
-    var form = document.getElementById("bulk-form");
-    var selectAll = document.getElementById("bulk-select-all");
-    var filterTotalEl = document.getElementById("bulk-filter-total");
-    var filterTotal = filterTotalEl ? parseInt(filterTotalEl.textContent, 10) || 0 : 0;
-    function update() {
-      var n = document.querySelectorAll(".bulk-check:checked").length;
-      if (selectAll && selectAll.checked) {
-        count.textContent = "将对当前筛选的全部 " + filterTotal + " 篇执行";
-      } else {
-        count.textContent = "已选 " + n + " 篇";
-      }
-    }
-    checks.forEach(function (cb) { cb.addEventListener("change", update); });
-    if (selectAll) { selectAll.addEventListener("change", update); }
-    form.addEventListener("submit", function (e) {
-      var action = form.querySelector('select[name="action"]').value;
-      var n = document.querySelectorAll(".bulk-check:checked").length;
-      var all = !!(selectAll && selectAll.checked);
-      var target = all ? filterTotal : n;
-      if (!target) { e.preventDefault(); return; }
-      if (all) {
-        form.querySelectorAll('input[type="hidden"][data-filter]').forEach(function (h) { h.remove(); });
-        var filterForm = document.querySelector(".list-filters");
-        var map = { q: "q", status: "status", tag: "filter_tag", pinned: "pinned" };
-        Object.keys(map).forEach(function (name) {
-          var el = filterForm.querySelector('[name="' + name + '"]');
-          if (el && el.value) {
-            var input = document.createElement("input");
-            input.type = "hidden";
-            input.name = map[name];
-            input.value = el.value;
-            input.dataset.filter = "1";
-            form.appendChild(input);
-          }
-        });
-        var scope = document.createElement("input");
-        scope.type = "hidden";
-        scope.name = "scope";
-        scope.value = "all";
-        scope.dataset.filter = "1";
-        form.appendChild(scope);
-      }
-      if (action === "delete" && !confirm("确定删除" + (all ? "当前筛选的全部 " + target + " 篇" : "选中的 " + target + " 篇") + "文章？删除后立即重建公开站。")) {
-        e.preventDefault();
-      }
-      if ((action === "add_tag" || action === "remove_tag") && !form.querySelector('input[name="tag"]').value.trim()) {
-        e.preventDefault();
-        form.querySelector('input[name="tag"]').focus();
-      }
-    });
-  })();
-  {% endif %}
   document.addEventListener("keydown", function (e) {
     if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
       var q = document.getElementById("q");
-      if (q) {
-        e.preventDefault();
-        q.focus();
-      }
+      if (q) { e.preventDefault(); q.focus(); }
     }
   });
   (function () {
@@ -158,18 +49,13 @@
     var form = document.querySelector(".list-filters");
     var clearLink = document.querySelector(".list-filters a[data-clear-filters]");
     if (clearLink) {
-      clearLink.addEventListener("click", function () {
-        localStorage.removeItem(key);
-      });
+      clearLink.addEventListener("click", function () { localStorage.removeItem(key); });
     }
     if (!hasFilter) {
       var saved = localStorage.getItem(key);
       if (saved) {
         var target = "/{{ admin_path }}/" + section + "?" + saved;
-        if (target !== location.pathname + location.search) {
-          location.replace(target);
-          return;
-        }
+        if (target !== location.pathname + location.search) { location.replace(target); return; }
       }
     } else if (form) {
       var qs = new URLSearchParams();

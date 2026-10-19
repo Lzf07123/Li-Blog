@@ -13,7 +13,7 @@
 <form class="list-filters" method="get" action="/{{ admin_path }}/logs">
   <select name="kind" aria-label="按事件筛选" data-custom-dropdown>
     <option value="">全部事件</option>
-    {% for k in ["login_ok", "login_fail", "login_limited", "password_changed", "session_revoked", "content_save", "content_delete", "content_trash", "content_duplicate", "trash_restore", "trash_delete", "trash_empty", "posts_bulk", "tags_apply", "media_upload", "media_delete", "backup_download", "backup_restore", "revision_restore", "rebuild"] %}
+    {% for k in ["login_ok", "login_fail", "login_limited", "password_changed", "session_revoked", "content_save", "content_delete", "content_trash", "content_duplicate", "trash_restore", "trash_delete", "trash_empty", "media_upload", "media_delete", "backup_download", "backup_restore", "rebuild"] %}
     <option value="{{ k }}" {% if kind == k %}selected{% endif %}>{{ k }}</option>
     {% endfor %}
   </select>

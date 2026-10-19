@@ -18,7 +18,6 @@ from admin.config import settings
 from admin.db import connect, create_admin, init_db
 from admin.main import app, build, rewrite_preview_html, safe_stats_href
 
-
 class AdminRoutesTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -107,7 +106,7 @@ class AdminRoutesTest(unittest.TestCase):
 
     def test_rename_slug_removes_old_file(self):
         store.write_markdown(
-            "posts", "old-slug", {"title": "Old", "date": "2026-08-18"}, "正文"
+            "projects", "old-slug", {"title": "Old", "date": "2026-08-18"}, "正文"
         )
         original = build.run_full
         build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
@@ -115,7 +114,7 @@ class AdminRoutesTest(unittest.TestCase):
         with TestClient(app) as client:
             csrf = self._login(client)
             r = client.post(
-                "/admin/posts/save",
+                "/admin/projects/save",
                 data={
                     "_csrf": csrf,
                     "slug": "old-slug",
@@ -129,79 +128,13 @@ class AdminRoutesTest(unittest.TestCase):
                 follow_redirects=False,
             )
             self.assertEqual(r.status_code, 303)
-            self.assertFalse((settings.content_root / "posts" / "old-slug.md").exists())
-            self.assertTrue((settings.content_root / "posts" / "new-slug.md").exists())
-
-    def test_batch_import_rejects_empty_markdown(self):
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/import",
-                data={"_csrf": csrf},
-                files={"files": ("untitled.md", b"", "text/markdown")},
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 200)
-            self.assertIn("文件内容为空", r.text)
-            self.assertFalse(
-                (settings.content_root / "posts" / "untitled.md").exists()
-            )
-
-    def test_batch_import_skips_bad_zip_keeps_good_markdown(self):
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/import",
-                data={"_csrf": csrf},
-                files=[
-                    ("files", ("bad.zip", b"not a zip", "application/zip")),
-                    ("files", ("good.md", "---\ntitle: Good\n---\n正文".encode("utf-8"), "text/markdown")),
-                ],
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 200)
-            self.assertIn("导入 1 篇", r.text)
-            self.assertIn("ZIP 文件无法解析", r.text)
-            self.assertTrue((settings.content_root / "posts" / "good.md").exists())
-
-    def test_batch_import_zip_skips_bad_member_imports_good(self):
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        buf = io.BytesIO()
-        with zipfile.ZipFile(buf, "w") as zf:
-            zf.writestr("../evil.md", "---\ntitle: x\n---\n")
-            zf.writestr("ok.md", "---\ntitle: OK\n---\n")
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/import",
-                data={"_csrf": csrf},
-                files={"files": ("docs.zip", buf.getvalue(), "application/zip")},
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 200)
-            self.assertIn("导入 1 篇", r.text)
-            self.assertIn("非法路径", r.text)
-            self.assertTrue((settings.content_root / "posts" / "ok.md").exists())
-            self.assertFalse((settings.content_root / "posts" / "evil.md").exists())
-
-    def test_batch_import_page_lists_pending_files(self):
-        with TestClient(app) as client:
-            self._login(client)
-            r = client.get("/admin/posts/import")
-            self.assertEqual(r.status_code, 200)
-            self.assertIn('id="import-pending"', r.text)
-            self.assertIn('id="import-pending-list"', r.text)
-            self.assertIn('addEventListener("change"', r.text)
+            self.assertFalse((settings.content_root / "projects" / "old-slug.md").exists())
+            self.assertTrue((settings.content_root / "projects" / "new-slug.md").exists())
 
     def test_custom_dropdown_referenced_on_list_and_base(self):
         with TestClient(app) as client:
             self._login(client)
-            r = client.get("/admin/posts")
+            r = client.get("/admin/projects")
             self.assertEqual(r.status_code, 200)
             self.assertIn('data-custom-dropdown', r.text)
             self.assertIn('name="per_page" aria-label="每页条数" data-custom-dropdown', r.text)
@@ -209,107 +142,16 @@ class AdminRoutesTest(unittest.TestCase):
             self.assertEqual(r.status_code, 200)
             self.assertIn("custom-select", r.text)
 
-    def test_bulk_checkboxes_attached_to_bulk_form(self):
-        store.write_markdown(
-            "posts",
-            "bulk-ui",
-            {"title": "Bulk UI", "date": "2026-08-18", "status": "published"},
-            "正文",
-        )
-        with TestClient(app) as client:
-            self._login(client)
-            r = client.get("/admin/posts")
-            self.assertEqual(r.status_code, 200)
-            self.assertIn('<form id="bulk-form"', r.text)
-            self.assertIn('form="bulk-form"', r.text)
-
-    def test_list_page_has_tag_pinned_filters_and_select_all(self):
-        with TestClient(app) as client:
-            self._login(client)
-            r = client.get("/admin/posts")
-            self.assertEqual(r.status_code, 200)
-            self.assertIn('name="tag" aria-label="按标签筛选"', r.text)
-            self.assertIn('name="pinned" aria-label="按置顶筛选"', r.text)
-            self.assertIn('id="bulk-select-all"', r.text)
-            self.assertIn('id="bulk-filter-total"', r.text)
-
-    def test_bulk_scope_all_respects_filters(self):
-        for slug, status, tags in [
-            ("keep-a", "draft", ["hugo"]),
-            ("keep-b", "draft", ["hugo"]),
-            ("other", "draft", ["python"]),
-        ]:
-            store.write_markdown(
-                "posts",
-                slug,
-                {"title": slug, "date": "2026-08-18", "status": status, "tags": tags},
-                "正文",
-            )
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/bulk",
-                data={
-                    "_csrf": csrf,
-                    "action": "publish",
-                    "scope": "all",
-                    "status": "draft",
-                    "filter_tag": "hugo",
-                    "slugs": [],
-                },
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 303)
-            self.assertEqual(store.read_markdown("posts", "keep-a")[0]["status"], "published")
-            self.assertEqual(store.read_markdown("posts", "keep-b")[0]["status"], "published")
-            self.assertEqual(store.read_markdown("posts", "other")[0]["status"], "draft")
-
-    def test_bulk_scope_all_respects_pinned_filter(self):
-        store.write_markdown(
-            "posts",
-            "pin-a",
-            {"title": "A", "date": "2026-08-18", "status": "published", "pinned": True},
-            "正文",
-        )
-        store.write_markdown(
-            "posts",
-            "pin-b",
-            {"title": "B", "date": "2026-08-18", "status": "published", "pinned": False},
-            "正文",
-        )
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/bulk",
-                data={
-                    "_csrf": csrf,
-                    "action": "unpin",
-                    "scope": "all",
-                    "pinned": "1",
-                    "slugs": [],
-                },
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 303)
-            self.assertFalse(store.read_markdown("posts", "pin-a")[0].get("pinned"))
-            self.assertFalse(store.read_markdown("posts", "pin-b")[0].get("pinned"))
-
     def test_row_actions_confirm_use_data_attribute(self):
         store.write_markdown(
-            "posts",
+            "projects",
             "confirm-ui",
             {"title": "Confirm UI", "date": "2026-08-18", "status": "published"},
             "正文",
         )
         with TestClient(app) as client:
             self._login(client)
-            r = client.get("/admin/posts")
+            r = client.get("/admin/projects")
             self.assertEqual(r.status_code, 200)
             self.assertIn('data-confirm="确定移入回收站', r.text)
             self.assertIn("form[data-confirm]", r.text)
@@ -365,7 +207,7 @@ class AdminRoutesTest(unittest.TestCase):
 
     def test_trash_restore_cycle(self):
         store.write_markdown(
-            "posts",
+            "projects",
             "trash-me",
             {"title": "Trash", "date": "2026-08-18", "status": "published"},
             "正文",
@@ -376,27 +218,27 @@ class AdminRoutesTest(unittest.TestCase):
         with TestClient(app) as client:
             csrf = self._login(client)
             r = client.post(
-                "/admin/posts/trash-me/trash",
+                "/admin/projects/trash-me/trash",
                 data={"_csrf": csrf},
                 follow_redirects=False,
             )
             self.assertEqual(r.status_code, 303)
-            self.assertFalse((settings.content_root / "posts" / "trash-me.md").exists())
+            self.assertFalse((settings.content_root / "projects" / "trash-me.md").exists())
             self.assertEqual(len(store.list_trash()), 1)
             r = client.get("/admin/trash")
             self.assertIn("Trash", r.text)
             r = client.post(
-                "/admin/trash/posts/trash-me/restore",
+                "/admin/trash/projects/trash-me/restore",
                 data={"_csrf": csrf},
                 follow_redirects=False,
             )
             self.assertEqual(r.status_code, 303)
-            self.assertTrue((settings.content_root / "posts" / "trash-me.md").exists())
+            self.assertTrue((settings.content_root / "projects" / "trash-me.md").exists())
             self.assertEqual(store.list_trash(), [])
 
     def test_duplicate_creates_draft(self):
         store.write_markdown(
-            "posts",
+            "projects",
             "source",
             {"title": "Source", "date": "2026-08-18", "status": "published"},
             "正文内容",
@@ -407,61 +249,32 @@ class AdminRoutesTest(unittest.TestCase):
         with TestClient(app) as client:
             csrf = self._login(client)
             r = client.post(
-                "/admin/posts/source/duplicate",
+                "/admin/projects/source/duplicate",
                 data={"_csrf": csrf},
                 follow_redirects=False,
             )
             self.assertEqual(r.status_code, 303)
-        fm, body = store.read_markdown("posts", "source-2")
+        fm, body = store.read_markdown("projects", "source-2")
         self.assertEqual(fm["status"], "draft")
         self.assertEqual(body.strip(), "正文内容")
         self.assertIn("副本", fm["title"])
 
     def test_slug_check_json(self):
         store.write_markdown(
-            "posts",
+            "projects",
             "exists",
             {"title": "E", "date": "2026-08-18"},
             "正文",
         )
         with TestClient(app) as client:
             self._login(client)
-            r = client.get("/admin/posts/slug-check?slug=exists")
+            r = client.get("/admin/projects/slug-check?slug=exists")
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.json(), {"valid": True, "exists": True})
-            r = client.get("/admin/posts/slug-check?slug=free")
+            r = client.get("/admin/projects/slug-check?slug=free")
             self.assertEqual(r.json(), {"valid": True, "exists": False})
-            r = client.get("/admin/posts/slug-check?slug=BAD SLUG")
+            r = client.get("/admin/projects/slug-check?slug=BAD SLUG")
             self.assertEqual(r.json(), {"valid": False, "exists": False})
-
-    def test_bulk_add_remove_tag(self):
-        for slug in ("a", "b"):
-            store.write_markdown(
-                "posts",
-                slug,
-                {"title": slug, "date": "2026-08-18", "tags": ["old"]},
-                "正文",
-            )
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/bulk",
-                data={"_csrf": csrf, "action": "add_tag", "tag": "new", "slugs": ["a", "b"]},
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 303)
-            fm, _ = store.read_markdown("posts", "a")
-            self.assertIn("new", fm["tags"])
-            r = client.post(
-                "/admin/posts/bulk",
-                data={"_csrf": csrf, "action": "remove_tag", "tag": "old", "slugs": ["a", "b"]},
-                follow_redirects=False,
-            )
-            fm, _ = store.read_markdown("posts", "b")
-            self.assertNotIn("old", fm["tags"])
 
     def test_media_unused_filter(self):
         (media.MEDIA_ROOT / "unused.png").write_bytes(b"png")
@@ -475,9 +288,9 @@ class AdminRoutesTest(unittest.TestCase):
 
     def test_dashboard_widgets(self):
         store.write_markdown(
-            "posts",
-            "future",
-            {"title": "未来文章", "date": "2099-01-01", "status": "published"},
+            "projects",
+            "demo",
+            {"title": "Demo", "date": "2026-08-18", "status": "active"},
             "正文",
         )
         with TestClient(app) as client:
@@ -485,12 +298,11 @@ class AdminRoutesTest(unittest.TestCase):
             r = client.get("/admin/")
             self.assertIn("最近活动", r.text)
             self.assertIn("内容体检", r.text)
-            self.assertIn("定时文章", r.text)
-            self.assertIn("未来文章", r.text)
+            self.assertIn("项目", r.text)
 
     def test_stats_path_maps_to_title(self):
         store.write_markdown(
-            "posts",
+            "projects",
             "mapped",
             {"title": "可读标题", "date": "2026-08-18"},
             "正文",
@@ -498,7 +310,7 @@ class AdminRoutesTest(unittest.TestCase):
         conn = connect()
         conn.execute(
             "INSERT INTO stats (path, day, views) VALUES (?, ?, 1)",
-            ("/posts/mapped/", "2026-08-19"),
+            ("/projects/mapped/", "2026-08-19"),
         )
         conn.commit()
         conn.close()
@@ -506,7 +318,7 @@ class AdminRoutesTest(unittest.TestCase):
             self._login(client)
             r = client.get("/admin/stats")
             self.assertIn("可读标题", r.text)
-            self.assertIn("/posts/mapped/", r.text)
+            self.assertIn("/projects/mapped/", r.text)
 
     def test_logs_kind_filter_and_pagination(self):
         conn = connect()
@@ -523,187 +335,6 @@ class AdminRoutesTest(unittest.TestCase):
             self.assertIn("posts/0", r.text)
             r = client.get("/admin/logs?kind=login_ok")
             self.assertNotIn("posts/0", r.text)
-
-    def test_publish_now_sets_today(self):
-        import datetime
-
-        store.write_markdown(
-            "posts",
-            "future-now",
-            {"title": "F", "date": "2099-01-01", "status": "published"},
-            "正文",
-        )
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/future-now/publish-now",
-                data={"_csrf": csrf},
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 303)
-        fm, _ = store.read_markdown("posts", "future-now")
-        self.assertEqual(fm["date"], datetime.date.today().isoformat())
-
-    def test_post_save_writes_cover_field(self):
-        store.write_markdown(
-            "posts",
-            "cover-post",
-            {"title": "C", "date": "2026-08-18", "status": "published"},
-            "正文",
-        )
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/save",
-                data={
-                    "_csrf": csrf,
-                    "slug": "cover-post",
-                    "new_slug": "",
-                    "action": "save_stay",
-                    "title": "C2",
-                    "date": "2026-08-18",
-                    "status": "published",
-                    "cover": "/img/2026/08/cover.webp",
-                    "body": "正文",
-                },
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 303)
-        fm, _ = store.read_markdown("posts", "cover-post")
-        self.assertEqual(fm["cover"], "/img/2026/08/cover.webp")
-        self.assertTrue(
-            (settings.db_path.parent / "revisions" / "posts" / "cover-post").exists()
-        )
-
-    def test_save_draft_sets_hugo_draft_flag(self):
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/save",
-                data={
-                    "_csrf": csrf,
-                    "slug": "",
-                    "new_slug": "draft-flag",
-                    "action": "save_stay",
-                    "title": "D",
-                    "date": "2026-08-20",
-                    "status": "draft",
-                    "body": "正文",
-                },
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 303)
-        fm, _ = store.read_markdown("posts", "draft-flag")
-        self.assertIs(fm["draft"], True)
-        self.assertEqual(fm["status"], "draft")
-
-    def test_publish_removes_hugo_draft_flag(self):
-        store.write_markdown(
-            "posts",
-            "draft-flag-2",
-            {"title": "D2", "date": "2026-08-20", "status": "draft"},
-            "正文",
-        )
-        self.assertIs(store.read_markdown("posts", "draft-flag-2")[0]["draft"], True)
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/draft-flag-2/status",
-                data={"_csrf": csrf, "status": "published"},
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 303)
-        fm, _ = store.read_markdown("posts", "draft-flag-2")
-        self.assertIs(fm["draft"], False)
-
-    def test_posts_list_groups_rows_by_year(self):
-        store.write_markdown(
-            "posts", "old-post",
-            {"title": "旧文", "date": "2025-03-01", "status": "published"},
-            "正文",
-        )
-        store.write_markdown(
-            "posts", "new-post",
-            {"title": "新文", "date": "2026-08-18", "status": "published"},
-            "正文",
-        )
-        with TestClient(app) as client:
-            self._login(client)
-            r = client.get("/admin/posts?sort=date&order=desc")
-            self.assertEqual(r.status_code, 200)
-            self.assertIn("table-group-row", r.text)
-            self.assertIn("2026", r.text)
-            self.assertIn("2025", r.text)
-
-    def test_posts_bulk_publish_and_delete(self):
-        store.write_markdown(
-            "posts", "bulk-a",
-            {"title": "A", "date": "2026-08-18", "status": "draft"},
-            "正文",
-        )
-        store.write_markdown(
-            "posts", "bulk-b",
-            {"title": "B", "date": "2026-08-18", "status": "draft"},
-            "正文",
-        )
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/posts/bulk",
-                data={"_csrf": csrf, "action": "publish", "slugs": ["bulk-a", "bulk-b"]},
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 303)
-            self.assertEqual(
-                store.read_markdown("posts", "bulk-a")[0]["status"], "published"
-            )
-            r = client.post(
-                "/admin/posts/bulk",
-                data={"_csrf": csrf, "action": "delete", "slugs": ["bulk-a"]},
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 303)
-            self.assertFalse((settings.content_root / "posts" / "bulk-a.md").exists())
-
-    def test_tags_rename_updates_posts(self):
-        store.write_markdown(
-            "posts", "tag-a",
-            {"title": "A", "date": "2026-08-18", "tags": ["old", "keep"]},
-            "正文",
-        )
-        original = build.run_full
-        build.run_full = lambda: (types.SimpleNamespace(returncode=0, stderr=""), 0.01)
-        self.addCleanup(setattr, build, "run_full", original)
-        with TestClient(app) as client:
-            csrf = self._login(client)
-            r = client.post(
-                "/admin/tags/apply",
-                data={
-                    "_csrf": csrf,
-                    "old_tag": "old",
-                    "new_tag": "renamed",
-                    "action": "rename",
-                },
-                follow_redirects=False,
-            )
-            self.assertEqual(r.status_code, 303)
-        fm, _ = store.read_markdown("posts", "tag-a")
-        self.assertEqual(fm["tags"], ["keep", "renamed"])
 
     def test_logout_post_requires_csrf(self):
         with TestClient(app) as client:
@@ -772,7 +403,6 @@ class AdminRoutesTest(unittest.TestCase):
         self.assertIn('src="/admin/static/js/app.js"', out)
         self.assertIn('src="/admin/preview-out/img/a.png"', out)
         self.assertIn("url('/admin/preview-out/img/b.png')", out)
-
 
     def test_friends_admin_list_and_edit_fields(self):
         store.write_markdown(

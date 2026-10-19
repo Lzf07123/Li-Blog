@@ -11,7 +11,6 @@ from admin.config import settings
 from admin.db import connect, create_admin, init_db
 from admin.session import create_session, get_session
 
-
 def make_backup_zip(
     content: bytes,
     config: bytes,
@@ -29,7 +28,6 @@ def make_backup_zip(
         if hugo is not None:
             zf.writestr("hugo.toml", hugo)
     return buf.getvalue()
-
 
 class TestRestore(unittest.TestCase):
     def setUp(self):
@@ -143,19 +141,3 @@ class TestRestore(unittest.TestCase):
         text = (settings.config_root / "brand.yaml").read_text(encoding="utf-8")
         self.assertNotIn("onload", text)
         self.assertIn("<svg>", text)
-
-    def test_restore_normalizes_hugo_draft_flag(self):
-        buf = io.BytesIO()
-        with zipfile.ZipFile(buf, "w") as zf:
-            zf.writestr(
-                "content/posts/a.md",
-                "---\ntitle: A\nstatus: draft\n---\nAAA",
-            )
-        restore.restore_backup(buf.getvalue(), safety=False)
-        fm, _ = restore.content_store.read_markdown("posts", "a")
-        self.assertIs(fm["draft"], True)
-        self.assertEqual(fm["status"], "draft")
-
-
-if __name__ == "__main__":
-    unittest.main()

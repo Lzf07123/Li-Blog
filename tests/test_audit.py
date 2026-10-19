@@ -13,7 +13,7 @@ class TestAudit(unittest.TestCase):
             (root / "content" / "posts" / "a.md").write_text(
                 "---\ntitle: 重复标题\n---\n"
                 "![图](/img/missing.png)\n"
-                "[坏链](/posts/nope/)\n",
+                "[坏链](/projects/nope/)\n",
                 encoding="utf-8",
             )
             (root / "content" / "posts" / "b.md").write_text(

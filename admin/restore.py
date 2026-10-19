@@ -62,20 +62,6 @@ def restore_backup(data: bytes, safety: bool = True) -> dict:
             elif arcname == "hugo.toml":
                 counts["hugo"] = 1
 
-    if "content" in roots:
-        # 备份可能只带 status: draft，缺少 Hugo 的 draft: true；统一规范化，
-        # 避免恢复后草稿泄漏进公开产物导致构建失败。
-        for p in sorted((settings.content_root / "posts").glob("*.md")):
-            if p.stem in ("_index", "index"):
-                continue
-            try:
-                fm, body = content_store.read_markdown("posts", p.stem)
-                if fm.get("status") == "draft" and not fm.get("draft"):
-                    fm["draft"] = True
-                    content_store.write_markdown("posts", p.stem, fm, body)
-            except (ValueError, OSError):
-                pass
-
     if counts["database"]:
         init_db()
     if counts["config"]:

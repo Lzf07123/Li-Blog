@@ -4,7 +4,7 @@
 <nav class="admin-breadcrumb" aria-label="面包屑">
   <a href="/{{ admin_path }}/">仪表盘</a>
   <span class="admin-breadcrumb-sep" aria-hidden="true">/</span>
-  {% if section in ["posts", "projects", "timeline", "friends"] %}
+  {% if section in ["projects", "timeline", "friends"] %}
   <a href="/{{ admin_path }}/{{ section }}">{{ label }}</a>
   <span class="admin-breadcrumb-sep" aria-hidden="true">/</span>
   <span aria-current="page">{{ slug or "新建" }}</span>
@@ -24,7 +24,7 @@
     <form id="edit-form" method="post" action="/{{ admin_path }}/{{ section }}/save">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="slug" value="{{ slug }}">
-      {% if not slug and section in ["posts", "projects", "timeline", "friends"] %}
+      {% if not slug and section in ["projects", "timeline", "friends"] %}
       <label>标识（slug，新建时必填，小写字母数字与连字符）
         <input type="text" name="new_slug" required pattern="[a-z0-9][a-z0-9-]{0,63}">
       </label>
@@ -44,19 +44,11 @@
           {% elif ftype == "textarea" %}
             <textarea name="{{ name }}" rows="3">{{ value }}</textarea>
           {% else %}
-            <input type="text" name="{{ name }}" value="{{ value }}"{% if name == "tags" and section == "posts" %} list="tag-options"{% endif %}>
+            <input type="text" name="{{ name }}" value="{{ value }}">
           {% endif %}
         </label>
-        {% if name == "cover" and section == "posts" %}
-        <button type="button" class="btn btn-sm btn-secondary" id="cover-pick">从媒体库选择封面</button>
-        {% endif %}
       {% endfor %}
       <small id="title-hint" class="field-help" role="status" hidden></small>
-      {% if section == "posts" and all_tags %}
-      <datalist id="tag-options">
-        {% for t in all_tags %}<option value="{{ t }}"></option>{% endfor %}
-      </datalist>
-      {% endif %}
       <div{% if section == "friends" %} hidden{% endif %}>
       <label>正文 Markdown
         <div class="editor-toolbar">
@@ -99,36 +91,6 @@
     </div>
     <p id="preview-loading" class="flash preview-loading" hidden>正在生成预览…</p>
     <iframe id="preview-frame" name="preview-frame" title="Hugo 预览" class="preview-frame"></iframe>
-    {% if seo %}
-    <div class="seo-panel">
-      <p class="editor-preview-head">SEO 检查</p>
-      <ul class="seo-list">
-        <li class="{{ 'ok' if seo.title_ok else 'warn' }}">标题 {{ seo.title_len }} 字（10–60 最佳）</li>
-        <li class="{{ 'ok' if seo.has_summary else 'warn' }}">{{ "已填摘要" if seo.has_summary else "缺少摘要" }}</li>
-        <li class="{{ 'ok' if seo.has_tags else 'warn' }}">{{ "已有标签" if seo.has_tags else "缺少标签" }}</li>
-        <li class="{{ 'ok' if seo.has_cover else 'warn' }}">{{ "已有封面" if seo.has_cover else "无封面（可选）" }}</li>
-        <li class="{{ 'ok' if seo.slug_ok else 'warn' }}">{{ "标识合法" if seo.slug_ok else "标识待填/非法" }}</li>
-        <li>正文字数约 {{ seo.word_count }} 词</li>
-        {% if seo.days_until and seo.days_until > 0 %}<li class="warn">距定时发布还有 {{ seo.days_until }} 天</li>{% endif %}
-      </ul>
-    </div>
-    {% endif %}
-    {% if revisions %}
-    <div class="revision-list">
-      <p class="editor-preview-head">修订历史（最近 {{ revisions|length }} 份）</p>
-      <ul>
-        {% for rev in revision_display[:10] %}
-        <li>
-          <a href="/{{ admin_path }}/posts/{{ slug }}/revisions/{{ rev.ts }}" target="_blank" rel="noopener">{{ rev.label }}</a>
-          <form method="post" action="/{{ admin_path }}/posts/{{ slug }}/revisions/{{ rev.ts }}/restore" data-busy>
-            <input type="hidden" name="_csrf" value="{{ csrf }}">
-            <button type="submit" class="btn-link">恢复</button>
-          </form>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
   </aside>
 </div>
 
@@ -190,7 +152,6 @@
     var slugInput = form.querySelector('input[name="new_slug"]');
     var titleInput = form.querySelector('input[name="title"]');
     var slugAuto = false;
-    var POST_TITLES = {{ post_titles | tojson }};
     if (slugInput && titleInput) {
       titleInput.addEventListener("input", function () {
         if (slugInput.value && !slugAuto) return;
@@ -223,19 +184,6 @@
       });
     }
 
-    var titleHint = document.getElementById("title-hint");
-    if (titleInput && titleHint && POST_TITLES.length) {
-      var currentSlug = "{{ slug }}";
-      titleInput.addEventListener("input", function () {
-        var value = titleInput.value.trim();
-        var dup = null;
-        POST_TITLES.forEach(function (p) {
-          if (p.title === value && p.slug !== currentSlug) dup = p;
-        });
-        titleHint.hidden = !dup;
-        titleHint.textContent = dup ? "已有同名文章：" + dup.slug : "";
-      });
-    }
 
     function saveDraft() {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({

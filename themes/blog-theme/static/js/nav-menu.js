@@ -1,6 +1,27 @@
 (function () {
   "use strict";
 
+  var header = document.querySelector(".site-header");
+  if (!header) return;
+
+  var ticking = false;
+  function update() {
+    header.classList.toggle("is-scrolled", window.scrollY > 8);
+    ticking = false;
+  }
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(update);
+  }
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  update();
+})();
+
+(function () {
+  "use strict";
+
   var menus = Array.prototype.slice.call(document.querySelectorAll("[data-mobile-menu]"));
   if (!menus.length) return;
 

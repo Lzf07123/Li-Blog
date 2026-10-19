@@ -8,10 +8,6 @@
   {{ partial "header.html" . }}
   <main id="main" class="page-shell" tabindex="-1">{{ block "main" . }}{{ end }}</main>
   {{ partial "footer.html" . }}
-  <a class="back-to-top" href="#main" aria-label="{{ hugo.Data.strings.common.top }}">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg>
-  </a>
-  {{ partial "search-modal.html" . }}
   {{ block "scripts" . }}{{ end }}
 </body>
 </html>

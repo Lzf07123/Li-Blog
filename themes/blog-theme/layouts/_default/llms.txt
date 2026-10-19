@@ -10,15 +10,8 @@
 
 ## 栏目
 
-- 文章：{{ "posts/" | relURL }}
 - 项目：{{ "projects/" | relURL }}
 - 历程：{{ "timeline/" | relURL }}
 - 关于：{{ "about/" | relURL }}
 - 资源：{{ "resources/" | relURL }}
 - 友情链接：{{ "friends/" | relURL }}
-
-## 最新文章
-
-{{ range first 20 (where .Site.RegularPages.ByDate.Reverse "Section" "posts") }}
-- [{{ .Title }}]({{ .Permalink }})：{{ .Summary | plainify | replaceRE "[\\s]+" " " | truncate 120 }}
-{{ end }}

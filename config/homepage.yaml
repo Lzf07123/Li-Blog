@@ -6,10 +6,6 @@ hero:
 journey:
   preview_count: 5
 
-posts:
-  featured: []       # 留空 = 自动取最新；填写 slug 列表可手工精选
-  latest_count: 5
-
 projects:
   show_on_home: true
   max_cards: 4

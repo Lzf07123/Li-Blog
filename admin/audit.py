@@ -65,7 +65,7 @@ def audit_content(root=None) -> list[dict]:
         if not url or url.startswith(("#", "http://", "https://", "mailto:", "data:")):
             return
         clean = url.split("#")[0].split("?")[0].rstrip("/")
-        if clean.startswith(("/posts/", "/projects/", "/timeline/")):
+        if clean.startswith(("/projects/", "/timeline/")):
             rel = clean.lstrip("/")
             if not any(
                 k == f"{rel}.md" or k.startswith(f"{rel}/") for k in by_rel
@@ -103,7 +103,7 @@ def audit_content(root=None) -> list[dict]:
     # 内容质量
     titles: dict[str, dict[str, str]] = {}
     for page in pages:
-        if page["section"] in ("posts", "projects", "timeline") and not page["body"].strip():
+        if page["section"] in ("projects", "timeline") and not page["body"].strip():
             issues.append(
                 {
                     "severity": "warning",
@@ -111,16 +111,6 @@ def audit_content(root=None) -> list[dict]:
                     "slug": page["slug"],
                     "title": page["title"],
                     "message": "正文为空",
-                }
-            )
-        if page["section"] == "posts" and not page["fm"].get("summary") and len(page["body"].strip()) < 120:
-            issues.append(
-                {
-                    "severity": "warning",
-                    "section": page["section"],
-                    "slug": page["slug"],
-                    "title": page["title"],
-                    "message": "缺少摘要且正文较短",
                 }
             )
         if len(page["title"]) > 60:
@@ -133,34 +123,6 @@ def audit_content(root=None) -> list[dict]:
                     "message": f"标题过长（{len(page['title'])} 字）",
                 }
             )
-        if page["section"] == "posts":
-            cover = page["fm"].get("cover")
-            if cover and str(cover).startswith(("/img/", "/assets/")):
-                rel = str(cover).lstrip("/")
-                if not any((base / rel).exists() for base in (theme_static, site_static)):
-                    issues.append(
-                        {
-                            "severity": "danger",
-                            "section": page["section"],
-                            "slug": page["slug"],
-                            "title": page["title"],
-                            "message": f"封面图缺失：{cover}",
-                        }
-                    )
-            try:
-                date_text = str(page["fm"].get("date", ""))[:10]
-                if date_text and datetime.date.fromisoformat(date_text) > datetime.date.today():
-                    issues.append(
-                        {
-                            "severity": "warning",
-                            "section": page["section"],
-                            "slug": page["slug"],
-                            "title": page["title"],
-                            "message": f"未来日期（{date_text}），未到时间不会公开",
-                        }
-                    )
-            except ValueError:
-                pass
         seen = titles.setdefault(page["section"], {})
         if page["title"] in seen:
             issues.append(

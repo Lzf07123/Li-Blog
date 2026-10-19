@@ -1,5 +1,5 @@
 {{ $d := "none" }}
 {{ if .IsHome }}{{ $d = "full" }}
 {{ else if eq .Kind "section" }}{{ $d = "css" }}
-{{ else if eq .Kind "page" }}{{ if eq .Section "posts" }}{{ $d = "none" }}{{ else }}{{ $d = "css" }}{{ end }}{{ end }}
+{{ else if eq .Kind "page" }}{{ $d = "css" }}{{ end }}
 {{ return $d }}
